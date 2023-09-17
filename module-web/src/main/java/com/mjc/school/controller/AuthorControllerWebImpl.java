@@ -32,7 +32,7 @@ public class AuthorControllerWebImpl implements BaseController<AuthorInputDTO, A
         return authorService.create(createRequest);
     }
 
-    @PostMapping("/update")
+    @PutMapping
     @Override
     public AuthorOutputDTO update(@RequestBody AuthorInputDTO updateRequest) {
         return authorService.update(updateRequest);

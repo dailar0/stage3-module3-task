@@ -1,24 +1,25 @@
 package com.mjc.school.service;
 
-import com.mjc.school.repository.BaseRepository;
+import com.mjc.school.repository.AuthorRepository;
 import com.mjc.school.repository.model.Author;
 import com.mjc.school.service.DTO.AuthorInputDTO;
 import com.mjc.school.service.DTO.AuthorOutputDTO;
-import com.mjc.school.service.annotation.OnDelete;
 import com.mjc.school.service.exception.EntityNotFoundException;
 import com.mjc.school.service.exception.ValidationException;
 import com.mjc.school.service.mapping.AuthorMapper;
 import com.mjc.school.service.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Set;
 
 @RequiredArgsConstructor
 @Service
+@Transactional(readOnly = true)
 public class AuthorService implements BaseService<AuthorInputDTO, AuthorOutputDTO, Long> {
-    private final BaseRepository<Author, Long> repository;
+    private final AuthorRepository repository;
     private final AuthorMapper mapper;
     private final Validator<AuthorInputDTO> validator;
 
@@ -34,6 +35,7 @@ public class AuthorService implements BaseService<AuthorInputDTO, AuthorOutputDT
                 .orElseThrow(() -> new EntityNotFoundException(String.format("Author with ID %d not found.", id)));
     }
 
+    @Transactional
     @Override
     public AuthorOutputDTO create(AuthorInputDTO createRequest) {
         validate(createRequest);
@@ -46,21 +48,26 @@ public class AuthorService implements BaseService<AuthorInputDTO, AuthorOutputDT
         return mapper.mapAuthorToOutput(created);
     }
 
+    @Transactional
     @Override
     public AuthorOutputDTO update(AuthorInputDTO updateRequest) {
-        if (!repository.existById(updateRequest.getId())) {
-            throw new EntityNotFoundException(String.format("Author with ID %d not found.", updateRequest.getId()));
-        }
-
         validate(updateRequest);
+        Author author = repository
+                .readById(updateRequest.getId())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        String.format("Author with ID %s not found.", updateRequest.getId())));
         Author input = mapper.mapCreateToAuthor(updateRequest);
-        Author updated = repository.update(input);
-        return mapper.mapAuthorToOutput(updated);
+        author.setName(input.getName());
+        repository.flush();
+        return mapper.mapAuthorToOutput(author);
     }
 
+    @Transactional
     @Override
-    @OnDelete(OnDelete.CascadeAction.REMOVE)
     public boolean deleteById(Long id) {
+        repository
+                .readById(id)
+                .ifPresent(entity-> entity.getNews().forEach(entity::deleteNews));
         return repository.deleteById(id);
     }
 

@@ -16,7 +16,7 @@ import java.util.Random;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
-class NewsServiceTest {
+class NewsServiceImplTest {
     @Autowired
     private BaseService<NewsInputDTO, NewsOutputDTO, Long> service;
     @Autowired
@@ -29,7 +29,8 @@ class NewsServiceTest {
         return new NewsInputDTO(random.nextLong(),
                 "validTitle",
                 "validContent",
-                authorOutputDTO.getId());
+                authorOutputDTO.getId(),
+                null);
     }
 
 
@@ -82,7 +83,8 @@ class NewsServiceTest {
         NewsInputDTO updatedNewsInputDTO = new NewsInputDTO(createdNews.getId(),
                 "Updated test news",
                 "This is an updated test news",
-                newsInputDTO.getAuthorId());
+                newsInputDTO.getAuthorId(),
+                null);
         // when
         Thread.sleep(30);
         NewsOutputDTO updatedNews = service.update(updatedNewsInputDTO);
@@ -113,7 +115,8 @@ class NewsServiceTest {
         NewsInputDTO newsInputDTO = new NewsInputDTO(random.nextLong(),
                 "validTitle",
                 "validContent",
-                Long.MAX_VALUE);
+                Long.MAX_VALUE,
+                null);
         // when, then
         assertThrows(ValidationException.class, () -> service.create(newsInputDTO));
     }
@@ -125,7 +128,7 @@ class NewsServiceTest {
         NewsInputDTO newsInputDTO = new NewsInputDTO(random.nextLong(),
                 "validTitle",
                 "validContent",
-                validDTO.getAuthorId());
+                validDTO.getAuthorId(),null);
         // when, then
         assertThrows(EntityNotFoundException.class, () -> service.update(newsInputDTO));
     }
@@ -140,7 +143,7 @@ class NewsServiceTest {
     @Test
     public void testValidation() {
         // given, when, then
-        NewsInputDTO newsInputDTO = new NewsInputDTO(1L, "a", "b", null);
+        NewsInputDTO newsInputDTO = new NewsInputDTO(1L, "a", "b", null,null);
         assertThrows(ValidationException.class, () -> service.create(newsInputDTO));
     }
 }
