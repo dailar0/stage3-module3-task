@@ -1,6 +1,7 @@
 package com.mjc.school.repository.dao;
 
 import com.mjc.school.repository.TagRepository;
+import com.mjc.school.repository.annotation.validation.Valid;
 import com.mjc.school.repository.model.Tag;
 import org.springframework.stereotype.Repository;
 
@@ -33,13 +34,13 @@ public class TagRepositoryJpaImpl implements TagRepository {
     }
 
     @Override
-    public Tag create(Tag entity) {
+    public Tag create(@Valid Tag entity) {
         entityManager.persist(entity);
         return entity;
     }
 
     @Override
-    public Tag update(Tag entity) {
+    public Tag update(@Valid Tag entity) {
         return entityManager.merge(entity);
     }
 
@@ -58,7 +59,7 @@ public class TagRepositoryJpaImpl implements TagRepository {
 
     @Override
     public Tag getReference(Long id) {
-        return entityManager.getReference(Tag.class,id);
+        return entityManager.getReference(Tag.class, id);
     }
 
     public Collection<Tag> readByIdIn(Collection<Long> ids) {
@@ -68,5 +69,12 @@ public class TagRepositoryJpaImpl implements TagRepository {
         cq.select(root).where(root.get("id").in(ids));
         TypedQuery<Tag> query = entityManager.createQuery(cq);
         return query.getResultList();
+    }
+
+    @Override
+    public List<Tag> readAllByNewsId(Long newsId) {
+        return entityManager.createQuery("select t from News n join n.tags t where n.id=:newsId", Tag.class)
+                .setParameter("newsId", newsId)
+                .getResultList();
     }
 }

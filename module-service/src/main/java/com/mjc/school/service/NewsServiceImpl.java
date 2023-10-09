@@ -10,19 +10,18 @@ import com.mjc.school.service.DTO.NewsInputDTO;
 import com.mjc.school.service.DTO.NewsInputFilterDTO;
 import com.mjc.school.service.DTO.NewsOutputDTO;
 import com.mjc.school.service.exception.EntityNotFoundException;
-import com.mjc.school.service.exception.ValidationException;
 import com.mjc.school.service.mapping.NewsMapper;
-import com.mjc.school.service.validation.Validator;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
-import javax.persistence.PersistenceException;
-import javax.persistence.criteria.*;
+import javax.persistence.criteria.Join;
+import javax.persistence.criteria.Predicate;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -34,32 +33,37 @@ public class NewsServiceImpl implements NewsService {
     private final NewsRepository newsRepository;
     private final AuthorRepository authorRepository;
     private final TagRepository tagRepository;
-    private final Validator<NewsInputDTO> newsValidator;
     private final NewsMapper mapper;
-    private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     @Transactional
     @Override
-    public NewsOutputDTO create(NewsInputDTO createDTO) {
-        validate(createDTO);
-
+    public NewsOutputDTO create(@NonNull NewsInputDTO createDTO) {
         if (createDTO.getId() != null)
             createDTO.setId(null);
 
         Collection<Long> tagIds = createDTO.getTagIds();
-        Set<Tag> tags = getTagReferencesByIds(tagIds);
+        Set<Tag> tags = tagIds != null ? getTagReferencesByIds(tagIds) : null;
 
-        Author author = authorRepository.getReference(createDTO.getAuthorId());
+        Long authorId = createDTO.getAuthorId();
+        Author author = authorId != null ? authorRepository.getReference(authorId) : null;
 
         News news = mapper.mapCreateToNews(createDTO, tags, author);
         News savedNews = newsRepository.create(news);
+
+        try {
+            newsRepository.flush();
+        } catch (DataIntegrityViolationException e) {
+            if (e.getCause() instanceof ConstraintViolationException) {
+                throw generateEntityNotFoundException((ConstraintViolationException) e.getCause());
+            }
+            throw e;
+        }
+
         return mapper.mapNewsToOutput(savedNews);
     }
 
     @Transactional
-    public NewsOutputDTO update(NewsInputDTO updateRequest) {
-        validate(updateRequest);
-
+    public NewsOutputDTO update(@NonNull NewsInputDTO updateRequest) {
         News fetched = newsRepository
                 .readNewsWithTagsByNewsId(updateRequest.getId())
                 .orElseThrow(() ->
@@ -81,8 +85,11 @@ public class NewsServiceImpl implements NewsService {
 
         try {
             newsRepository.flush();
-        } catch (PersistenceException e) {
-            throwException(e);
+        } catch (DataIntegrityViolationException e) {
+            if (e.getCause() instanceof ConstraintViolationException) {
+                throw generateEntityNotFoundException((ConstraintViolationException) e.getCause());
+            }
+            throw e;
         }
 
         return mapper.mapNewsToOutput(fetched);
@@ -159,15 +166,6 @@ public class NewsServiceImpl implements NewsService {
 
     }
 
-    private void validate(NewsInputDTO newsInputDTO) {
-        Set<String> violations = newsValidator.validate(newsInputDTO);
-
-        if (!violations.isEmpty()) {
-            String message = Validator.formErrorMessage(violations);
-            throw new ValidationException(message);
-        }
-    }
-
     private Set<Tag> getTagReferencesByIds(Collection<Long> tagIds) {
         Set<Tag> tags = new HashSet<>();
         if (tagIds != null && !tagIds.isEmpty()) {
@@ -178,11 +176,8 @@ public class NewsServiceImpl implements NewsService {
         return tags;
     }
 
-    private void throwException(PersistenceException e) {
-        boolean rollbackOnly = TransactionAspectSupport.currentTransactionStatus().isRollbackOnly();
-        logger.info("CUSTOM!!:" + e.getMessage() + "is rollback?:" + rollbackOnly);
-        Throwable constraintViolationException = e.getCause();
-        Throwable sqlException = constraintViolationException.getCause();
+    private EntityNotFoundException generateEntityNotFoundException(ConstraintViolationException e) {
+        SQLException sqlException = e.getSQLException();
         String message = sqlException.getMessage();
         if (message.contains("tag_id") || message.contains("author_id")) {
             Pattern pattern = Pattern.compile("\\(\\d+\\)");
@@ -192,16 +187,17 @@ public class NewsServiceImpl implements NewsService {
             if (matcher.find()) {
                 id = matcher.group().substring(1, matcher.group().length() - 1);
             } else {
-                throw new IllegalStateException("pg error parse trouble: description format changed");
+                throw new IllegalStateException("pg error parse trouble: description format changed", e);
             }
 
             if (message.contains("tag_id"))
-                throw new EntityNotFoundException(
+                return new EntityNotFoundException(
                         String.format("Tag with ID %s not found.", id));
             if (message.contains("author_id"))
-                throw new EntityNotFoundException(
+                return new EntityNotFoundException(
                         String.format("Author with ID %s not found.", id));
         }
+        throw e;
     }
 
 }

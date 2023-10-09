@@ -1,6 +1,7 @@
 package com.mjc.school.repository.dao;
 
 import com.mjc.school.repository.NewsRepository;
+import com.mjc.school.repository.annotation.validation.Valid;
 import com.mjc.school.repository.model.News;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.domain.Specification;
@@ -33,13 +34,13 @@ public class NewsRepositoryJpaImpl implements NewsRepository {
     }
 
     @Override
-    public News create(News entity) {
+    public News create(@Valid News entity) {
         entityManager.persist(entity);
         return entity;
     }
 
     @Override
-    public News update(News entity) {
+    public News update(@Valid News entity) {
         return entityManager.merge(entity);
     }
 
@@ -80,7 +81,7 @@ public class NewsRepositoryJpaImpl implements NewsRepository {
         CriteriaQuery<News> cq = cb.createQuery(News.class);
         Root<News> root = cq.from(News.class);
         Predicate predicate = specification.toPredicate(root, cq, cb);
-        cq.select(root).where(predicate);
+        cq.distinct(true).select(root).where(predicate);
         return entityManager.createQuery(cq).getResultList();
     }
 

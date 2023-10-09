@@ -1,6 +1,6 @@
 package com.mjc.school.controller;
 
-import com.mjc.school.service.BaseService;
+import com.mjc.school.service.AuthorServiceImpl;
 import com.mjc.school.service.DTO.AuthorInputDTO;
 import com.mjc.school.service.DTO.AuthorOutputDTO;
 import lombok.RequiredArgsConstructor;
@@ -12,7 +12,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @RequestMapping("/author")
 public class AuthorControllerWebImpl implements BaseController<AuthorInputDTO, AuthorOutputDTO, Long> {
-    private final BaseService<AuthorInputDTO, AuthorOutputDTO, Long> authorService;
+    private final AuthorServiceImpl authorService;
 
     @GetMapping
     @Override
@@ -24,6 +24,11 @@ public class AuthorControllerWebImpl implements BaseController<AuthorInputDTO, A
     @Override
     public AuthorOutputDTO readById(@PathVariable Long id) {
         return authorService.readById(id);
+    }
+
+    @GetMapping
+    public AuthorOutputDTO readByNewsId(@RequestParam(name = "newsId") Long newsId) {
+        return authorService.readByNewsId(newsId);
     }
 
     @PostMapping

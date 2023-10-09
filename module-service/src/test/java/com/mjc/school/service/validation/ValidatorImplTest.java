@@ -1,25 +1,24 @@
 package com.mjc.school.service.validation;
 
 import com.mjc.school.service.DTO.NewsInputDTO;
+import com.mjc.school.service.NewsServiceImpl;
+import com.mjc.school.service.exception.ValidationException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.Random;
-import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest
-class NewsValidatorImplTest {
+class ValidatorImplTest {
     @Autowired
-    Validator<NewsInputDTO> validator;
+    NewsServiceImpl newsService;
     Random random = new Random();
 
     private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    private static final String titleMessage = "Title should have length from 5 to 30.";
-    private static final String contentMessage = "Content should have length from 5 to 255.";
-    private static final String generalMessage = "All fields are required.";
 
     public static String randomString(int minLength, int maxLength) {
         if (minLength > maxLength) {
@@ -47,8 +46,9 @@ class NewsValidatorImplTest {
         return randomString(5, 255);
     }
 
-    private static long getValidAuthor() {
-        return 0L;
+    @BeforeEach
+    public void populateAuthor() {
+
     }
 
     @Test
@@ -57,9 +57,9 @@ class NewsValidatorImplTest {
                 random.nextLong(),
                 randomString(0, 4),
                 getValidContent(),
-                random.nextLong());
-        Set<String> violations = validator.validate(newsInputDTO);
-        assertTrue(violations.contains(titleMessage));
+                null,
+                null);
+        assertThrows(ValidationException.class, () -> newsService.create(newsInputDTO));
     }
 
     @Test
@@ -68,9 +68,9 @@ class NewsValidatorImplTest {
                 random.nextLong(),
                 randomString(30, 1000),
                 getValidTitle(),
-                random.nextLong());
-        Set<String> violations = validator.validate(newsInputDTO);
-        assertTrue(violations.contains(titleMessage));
+                null,
+                null);
+        assertThrows(ValidationException.class, () -> newsService.create(newsInputDTO));
     }
 
     @Test
@@ -78,9 +78,9 @@ class NewsValidatorImplTest {
         NewsInputDTO newsInputDTO = new NewsInputDTO(random.nextLong(),
                 getValidTitle(),
                 randomString(0, 4),
-                random.nextLong());
-        Set<String> violations = validator.validate(newsInputDTO);
-        assertTrue(violations.contains(contentMessage));
+                null,
+                null);
+        assertThrows(ValidationException.class, () -> newsService.create(newsInputDTO));
     }
 
     @Test
@@ -88,31 +88,9 @@ class NewsValidatorImplTest {
         NewsInputDTO newsInputDTO = new NewsInputDTO(random.nextLong(),
                 getValidTitle(),
                 randomString(256, 1000),
-                getValidAuthor());
-        Set<String> violations = validator.validate(newsInputDTO);
-        assertTrue(violations.contains(contentMessage));
-    }
-
-    @Test
-    public void testOtherPropertiesNotViolated() {
-        NewsInputDTO newsInputDTO = new NewsInputDTO(random.nextLong(),
-                getValidTitle(),
-                getValidContent(),
-                random.nextLong());
-        Set<String> violations = validator.validate(newsInputDTO);
-        assertFalse(violations.size() > 0);
-    }
-
-    @Test
-    public void testViolationSetContainsOneErrorMessagePerType() {
-        NewsInputDTO newsInputDTO = new NewsInputDTO(random.nextLong(),
-                randomString(0, 4),
-                randomString(0, 4),
-                getValidAuthor());
-        Set<String> violations = validator.validate(newsInputDTO);
-        assertEquals(2, violations.size());
-        assertTrue(violations.contains(titleMessage));
-        assertTrue(violations.contains(contentMessage));
+                null,
+                null);
+        assertThrows(ValidationException.class, () -> newsService.create(newsInputDTO));
     }
 
     @Test
@@ -120,9 +98,9 @@ class NewsValidatorImplTest {
         NewsInputDTO newsInputDTO = new NewsInputDTO(random.nextLong(),
                 randomString(30, 30),
                 randomString(255, 255),
-                getValidAuthor());
-        Set<String> violations = validator.validate(newsInputDTO);
-        assertTrue(violations.isEmpty());
+                null,
+                null);
+        newsService.create(newsInputDTO);
     }
 
     @Test
@@ -130,9 +108,9 @@ class NewsValidatorImplTest {
         NewsInputDTO newsInputDTO = new NewsInputDTO(random.nextLong(),
                 randomString(5, 5),
                 randomString(5, 5),
-                getValidAuthor());
-        Set<String> violations = validator.validate(newsInputDTO);
-        assertTrue(violations.isEmpty());
+                null,
+                null);
+        newsService.create(newsInputDTO);
     }
 
     @Test
@@ -140,9 +118,9 @@ class NewsValidatorImplTest {
         NewsInputDTO newsInputDTO = new NewsInputDTO(random.nextLong(),
                 null,
                 getValidContent(),
-                getValidAuthor());
-        Set<String> violations = validator.validate(newsInputDTO);
-        assertTrue(violations.contains(generalMessage));
+                null,
+                null);
+        assertThrows(ValidationException.class, () -> newsService.create(newsInputDTO));
     }
 
     @Test
@@ -150,15 +128,14 @@ class NewsValidatorImplTest {
         NewsInputDTO newsInputDTO = new NewsInputDTO(random.nextLong(),
                 getValidTitle(),
                 null,
-                getValidAuthor());
-        Set<String> violations = validator.validate(newsInputDTO);
-        assertTrue(violations.contains(generalMessage));
+                null,
+                null);
+        assertThrows(ValidationException.class, () -> newsService.create(newsInputDTO));
     }
 
     @Test
     public void TestNullObject() {
-        Set<String> violations1 = validator.validate(null);
-        assertTrue(violations1.contains(generalMessage));
+        assertThrows(NullPointerException.class,() -> newsService.create(null));
     }
 
 }

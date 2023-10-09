@@ -1,8 +1,8 @@
 package com.mjc.school.controller;
 
-import com.mjc.school.service.BaseService;
 import com.mjc.school.service.DTO.TagInputDTO;
 import com.mjc.school.service.DTO.TagOutputDTO;
+import com.mjc.school.service.TagService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,12 +12,17 @@ import java.util.List;
 @RestController
 @RequestMapping("/tag")
 public class TagControllerWebImpl implements BaseController<TagInputDTO, TagOutputDTO, Long> {
-    private final BaseService<TagInputDTO, TagOutputDTO, Long> tagService;
+    private final TagService tagService;
 
     @GetMapping
     @Override
     public List<TagOutputDTO> readAll() {
         return tagService.readAll();
+    }
+
+    @GetMapping
+    public List<TagOutputDTO> readByNewsId(@RequestParam(name = "newsId") Long newsId) {
+        return tagService.readAllByNewsID(newsId);
     }
 
     @GetMapping("/{id}")

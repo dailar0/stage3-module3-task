@@ -1,6 +1,6 @@
 package com.mjc.school.repository.model;
 
-import com.mjc.school.repository.annotation.Length;
+import com.mjc.school.repository.annotation.validation.Length;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;

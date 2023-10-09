@@ -19,9 +19,9 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest
 class AuthorServiceTest {
     @Autowired
-    private BaseService<AuthorInputDTO, AuthorOutputDTO, Long> authorService;
+    private AuthorServiceImpl authorService;
     @Autowired
-    private BaseService<NewsInputDTO, NewsOutputDTO, Long> newsService;
+    private NewsService newsService;
     private final Random random = new Random();
 
     private AuthorInputDTO getValidDTO() {
@@ -41,7 +41,7 @@ class AuthorServiceTest {
     }
 
     @Test
-    void update() throws InterruptedException{
+    void update() throws InterruptedException {
         AuthorInputDTO validDTO = getValidDTO();
         AuthorOutputDTO created = authorService.create(validDTO);
 
@@ -62,8 +62,12 @@ class AuthorServiceTest {
         AuthorOutputDTO created2 = authorService.create(dto2);
 
         List<AuthorOutputDTO> authorOutputDTOS = authorService.readAll();
+        List<Long> readIds = authorOutputDTOS.stream()
+                .map(AuthorOutputDTO::getId)
+                .toList();
 
-        assertTrue(authorOutputDTOS.containsAll(List.of(created1, created2)));
+        assertTrue(readIds.containsAll(
+                List.of(created1.getId(), created2.getId())));
     }
 
     @Test
@@ -84,32 +88,53 @@ class AuthorServiceTest {
         NewsInputDTO newsInputDTO = new NewsInputDTO(random.nextLong(),
                 "valid title",
                 "valid content",
-                authorOutputDTO.getId());
+                authorOutputDTO.getId(),
+                null);
         NewsOutputDTO newsOutputDTO = newsService.create(newsInputDTO);
 
         authorService.deleteById(authorOutputDTO.getId());
 
         assertThrows(EntityNotFoundException.class, () -> authorService.readById(authorOutputDTO.getId()));
-        assertThrows(EntityNotFoundException.class, () -> authorService.readById(newsOutputDTO.getId()));
+        assertThrows(EntityNotFoundException.class, () -> newsService.readById(newsOutputDTO.getId()));
     }
 
     @Test
     public void testUpdateNonExistingAuthor() {
-        // given
         AuthorInputDTO authorInputDTO = new AuthorInputDTO(Long.MAX_VALUE, "valid title");
-        // when, then
         assertThrows(EntityNotFoundException.class, () -> authorService.update(authorInputDTO));
     }
 
     @Test
     public void testDeleteNonExistingAuthor() {
-        // given, when, then
         assertFalse(authorService.deleteById(Long.MAX_VALUE));
     }
 
     @Test
+    public void readByNewsId() {
+        AuthorInputDTO validDTO = getValidDTO();
+        AuthorOutputDTO created = authorService.create(validDTO);
+        NewsInputDTO newsInputDTO = new NewsInputDTO(
+                null, "validTitle", "validContent", created.getId(), null);
+        NewsOutputDTO newsOutputDTO = newsService.create(newsInputDTO);
+
+        AuthorOutputDTO read = authorService.readByNewsId(newsOutputDTO.getId());
+
+        assertEquals(created.getId(), read.getId());
+    }
+
+    @Test
+    public void readNullByNewsId() {
+        AuthorInputDTO validDTO = getValidDTO();
+        authorService.create(validDTO);
+        NewsInputDTO newsInputDTO = new NewsInputDTO(
+                null, "validTitle", "validContent", null, null);
+        NewsOutputDTO newsOutputDTO = newsService.create(newsInputDTO);
+
+        assertThrows(EntityNotFoundException.class,() -> authorService.readByNewsId(newsOutputDTO.getId()));
+    }
+
+    @Test
     public void testValidation() {
-        // given, when, then
         AuthorInputDTO authorInputDTO = new AuthorInputDTO(1L, "a");
         assertThrows(ValidationException.class, () -> authorService.create(authorInputDTO));
     }

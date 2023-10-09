@@ -13,4 +13,5 @@ public interface NewsRepository extends BaseRepository<News,Long> {
     void flush();
 
     List<News> readAllByFilter(Specification<News> specification);
+
 }

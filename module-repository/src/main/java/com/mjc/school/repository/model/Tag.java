@@ -1,6 +1,7 @@
 package com.mjc.school.repository.model;
 
-import com.mjc.school.repository.annotation.Length;
+import com.mjc.school.repository.annotation.validation.Length;
+import com.mjc.school.repository.annotation.validation.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -17,5 +18,6 @@ public class Tag implements BaseEntity<Long> {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
     @Length(min = 3,max = 15)
+    @NotNull
     private String name;
 }
