@@ -20,7 +20,7 @@ public class TagControllerWebImpl implements BaseController<TagInputDTO, TagOutp
         return tagService.readAll();
     }
 
-    @GetMapping
+    @GetMapping(params = "newsId")
     public List<TagOutputDTO> readByNewsId(@RequestParam(name = "newsId") Long newsId) {
         return tagService.readAllByNewsID(newsId);
     }

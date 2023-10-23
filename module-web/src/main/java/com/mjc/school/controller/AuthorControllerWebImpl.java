@@ -26,7 +26,7 @@ public class AuthorControllerWebImpl implements BaseController<AuthorInputDTO, A
         return authorService.readById(id);
     }
 
-    @GetMapping
+    @GetMapping(params = "newsId")
     public AuthorOutputDTO readByNewsId(@RequestParam(name = "newsId") Long newsId) {
         return authorService.readByNewsId(newsId);
     }
